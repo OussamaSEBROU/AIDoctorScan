@@ -1,0 +1,1 @@
+{"tfjsVersion":"1.7.4","tmVersion":"2.4.14","packageVersion":"0.8.4-alpha2","packageName":"@teachablemachine/image","timeStamp":"2026-07-19T11:51:01.660Z","userMetadata":{},"modelName":"tm-my-image-model","labels":["Yes Have a Tumor in Brain Scan","No Tumor in Brain Scan","Not MRI Scan"],"imageSize":224}
