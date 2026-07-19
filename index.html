@@ -1,185 +1,129 @@
 <!DOCTYPE html>
-<html lang="ar" dir="ltr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="description" content="Doctor AI Scan — AI-powered brain MRI tumor detection using deep learning. Upload your MRI scan and get instant analysis results." />
-  <meta name="theme-color" content="#3384fc" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Doctor AI Scan — AI-powered brain MRI tumor detection assistant. Upload an MRI scan for instant AI analysis." />
+  <meta name="theme-color" content="#2B7AE9" />
   <title>Doctor AI Scan — Brain Tumor Detection</title>
 
-  <!-- Favicon (Emoji-based SVG) -->
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧠</text></svg>" />
 
-  <!-- TensorFlow.js & Teachable Machine -->
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js"></script>
+  <!-- TF.js & Teachable Machine (loaded async — non-blocking) -->
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.7.4/dist/tf.min.js" defer></script>
+  <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@0.8.4/dist/teachablemachine-image.min.js" defer></script>
 
-  <!-- Stylesheet -->
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
 
-  <!-- Animated Background -->
-  <div class="bg-gradient" aria-hidden="true"></div>
-  <div class="bg-grid" aria-hidden="true"></div>
+<div class="app">
 
-  <!-- Model Loading Overlay -->
-  <div class="model-loading" id="model-loading">
-    <div class="loading-brain">🧠</div>
-    <div class="loading-text">Loading AI Model…</div>
-    <div class="loading-sub">Preparing neural network for analysis</div>
-    <div class="loading-bar-track">
-      <div class="loading-bar-fill"></div>
+  <!-- Top Bar -->
+  <header class="topbar">
+    <div class="topbar-brand">
+      <div class="topbar-icon">🧠</div>
+      <h1>Doctor <span>AI</span> Scan</h1>
     </div>
+    <div class="topbar-status loading" id="model-status">
+      <span class="dot"></span>
+      <span id="status-text">Loading…</span>
+    </div>
+  </header>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="hero-visual">🧠</div>
+    <h2>Brain Tumor <em>Detection</em></h2>
+    <p>Upload or capture a brain MRI scan and let AI assist your diagnosis in seconds</p>
+  </section>
+
+  <!-- Scan Card -->
+  <div class="card" id="scan-card">
+
+    <!-- Tabs -->
+    <div class="tabs" role="tablist">
+      <button class="tab active" id="tab-upload" role="tab" onclick="switchTab('upload')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Upload</span>
+      </button>
+      <button class="tab" id="tab-camera" role="tab" onclick="switchTab('camera')">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+        <span>Camera</span>
+      </button>
+    </div>
+
+    <!-- Upload Panel -->
+    <div class="panel active" id="panel-upload">
+      <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+        <div id="dz-default">
+          <div class="dz-icon">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+          </div>
+          <h3>Drop MRI Scan Here</h3>
+          <p>or <b>tap to browse</b> — PNG, JPG, WEBP</p>
+        </div>
+        <div class="preview" id="preview">
+          <button class="preview-x" id="preview-x" onclick="clearImage(event)">✕</button>
+          <img id="preview-img" alt="MRI preview" />
+        </div>
+      </div>
+      <input type="file" id="file-input" accept="image/*" />
+    </div>
+
+    <!-- Camera Panel -->
+    <div class="panel" id="panel-camera">
+      <div class="cam-box">
+        <video id="cam-feed" autoplay playsinline></video>
+        <div class="cam-ph" id="cam-ph">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          <p>Camera preview appears here</p>
+        </div>
+      </div>
+      <div class="cam-btns">
+        <button class="btn btn-p" id="btn-cam-start" onclick="startCamera()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          Start
+        </button>
+        <button class="btn btn-s" id="btn-capture" onclick="capturePhoto()" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+          Capture
+        </button>
+        <button class="btn btn-d hidden" id="btn-cam-stop" onclick="stopCamera()">Stop</button>
+      </div>
+    </div>
+
+    <!-- Scan Button -->
+    <div class="scan-wrap">
+      <button class="btn-scan" id="btn-scan" onclick="runPrediction()" disabled>
+        <span class="spin" id="spinner"></span>
+        <span class="btn-label">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          Analyze MRI Scan
+        </span>
+      </button>
+    </div>
+
   </div>
 
-  <!-- Navigation -->
-  <nav class="top-nav" id="top-nav">
-    <div class="app-container">
-      <a href="#" class="nav-brand">
-        <div class="nav-logo">
-          <!-- Brain SVG Icon -->
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20">
-            <path d="M12 2a7 7 0 0 0-7 7c0 3 2 5 3 6.5S10 18 10 20h4c0-2 1.5-3.5 2.5-4.5S19 12 19 9a7 7 0 0 0-7-7Z"/>
-            <path d="M12 2v8"/>
-            <path d="M8 8c1.5 0 2 1 3 1s2-1 3-1"/>
-          </svg>
-        </div>
-        <span class="nav-title">Doctor <span>AI</span> Scan</span>
-      </a>
-      <span class="nav-badge">🔬 v1.0</span>
-    </div>
-  </nav>
+  <!-- Results (injected by JS) -->
+  <div id="results-box"></div>
 
-  <!-- Main Content -->
-  <main class="app-container">
-
-    <!-- Hero -->
-    <section class="hero" id="hero">
-      <div class="hero-pill">
-        <span class="dot"></span>
-        AI-Powered Medical Imaging
-      </div>
-      <h1>
-        Brain Tumor<br/>
-        <span class="gradient-text">Detection AI</span>
-      </h1>
-      <p>Upload a brain MRI scan and let our deep learning model analyze it instantly. Fast, accurate, and private — everything runs in your browser.</p>
-    </section>
-
-    <!-- Scan Card -->
-    <div class="scan-card" id="scan-card">
-
-      <!-- Tab Bar -->
-      <div class="tab-bar" role="tablist">
-        <button class="tab-btn active" id="tab-upload" role="tab" aria-selected="true" onclick="switchTab('upload')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-          <span>Upload Image</span>
-        </button>
-        <button class="tab-btn" id="tab-camera" role="tab" aria-selected="false" onclick="switchTab('camera')">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-          <span>Camera</span>
-        </button>
-      </div>
-
-      <!-- Upload Area -->
-      <div class="upload-area" id="upload-area">
-        <div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
-          <!-- Default Drop State -->
-          <div class="drop-default" id="drop-default">
-            <div class="drop-icon">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-            </div>
-            <h3>Drag & Drop MRI Scan</h3>
-            <p>or <strong>click to browse</strong> — PNG, JPG, WEBP</p>
-          </div>
-
-          <!-- Preview -->
-          <div class="preview-container" id="preview-container">
-            <button class="preview-close" id="preview-close" onclick="clearImage(event)" title="Remove image">✕</button>
-            <img id="preview-image" alt="MRI scan preview" />
-          </div>
-        </div>
-        <input type="file" id="file-input" accept="image/*" />
-      </div>
-
-      <!-- Camera Area -->
-      <div class="camera-area" id="camera-area">
-        <div class="camera-feed-container">
-          <video id="camera-feed" autoplay playsinline></video>
-          <div class="camera-placeholder" id="camera-placeholder">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            <p>Camera preview will appear here</p>
-          </div>
-        </div>
-        <div class="camera-controls">
-          <button class="btn btn-primary" id="btn-start-camera" onclick="startCamera()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
-            Start Camera
-          </button>
-          <button class="btn btn-secondary" id="btn-capture" onclick="capturePhoto()" disabled>
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-            Capture
-          </button>
-          <button class="btn btn-danger hidden" id="btn-stop-camera" onclick="stopCamera()">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="18" height="18"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/></svg>
-            Stop
-          </button>
-        </div>
-      </div>
-
-      <!-- Scan Button -->
-      <div class="scan-action">
-        <button class="btn-scan" id="btn-scan" onclick="runPrediction()" disabled>
-          <span class="spinner" id="scan-spinner"></span>
-          <span class="btn-text">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="20" height="20" style="display:inline;vertical-align:-4px;margin-right:6px"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-            Analyze MRI Scan
-          </span>
-        </button>
-      </div>
-
-    </div><!-- /scan-card -->
-
-    <!-- Results (rendered by JS) -->
-    <div id="results-container"></div>
-
-    <!-- Features -->
-    <section class="features" id="features">
-      <div class="feature-card">
-        <div class="feature-icon">🧠</div>
-        <div>
-          <h3>Deep Learning</h3>
-          <p>Powered by a neural network trained on brain MRI scans for accurate tumor detection</p>
-        </div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <div>
-          <h3>Instant Results</h3>
-          <p>Get predictions in seconds — all processing runs locally in your browser</p>
-        </div>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔒</div>
-        <div>
-          <h3>100% Private</h3>
-          <p>Your images never leave your device. No server uploads, no data storage</p>
-        </div>
-      </div>
-    </section>
-
-  </main>
+  <!-- Features -->
+  <section class="features">
+    <div class="feat"><div class="feat-ic">🧠</div><div><h4>Deep Learning</h4><p>Neural network trained on brain MRI scans</p></div></div>
+    <div class="feat"><div class="feat-ic">⚡</div><div><h4>Instant</h4><p>Analysis in seconds — all in your browser</p></div></div>
+    <div class="feat"><div class="feat-ic">🔒</div><div><h4>Private</h4><p>Images never leave your device</p></div></div>
+  </section>
 
   <!-- Footer -->
-  <footer class="site-footer">
-    <div class="app-container">
-      <p><strong>Doctor AI Scan</strong> — For educational &amp; research purposes only.</p>
-      <p>This tool is not a substitute for professional medical diagnosis. Always consult a healthcare professional.</p>
-    </div>
+  <footer>
+    <p><strong>Doctor AI Scan</strong> — Clinical Decision Support Tool</p>
+    <p>This system is designed to assist — not replace — qualified medical professionals.<br/>Always seek formal diagnosis from a certified physician.</p>
   </footer>
 
-  <!-- App Script -->
-  <script src="script.js"></script>
+</div>
+
+<script src="script.js"></script>
 </body>
 </html>
